@@ -3,9 +3,6 @@
 Neovim support for [T](https://github.com/lkurcak/t-lang): `.t` filetype
 detection, comment settings, and the `t lsp` language server.
 
-This repo is generated from `editors/nvim` in the main T repo. Send changes
-there.
-
 ## Install
 
 Requires Neovim 0.11+ and the `t` binary on your `$PATH`:
