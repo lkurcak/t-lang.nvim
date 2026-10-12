@@ -8,7 +8,7 @@ detection, comment settings, and the `t lsp` language server.
 Requires Neovim 0.11+ and the `t` binary on your `$PATH`:
 
 ```sh
-cargo install --git https://github.com/lkurcak/t-lang
+cargo install t-lang
 ```
 
 Then add the plugin:
