@@ -23,5 +23,7 @@ or with lazy.nvim:
 { "lkurcak/t-lang.nvim" }
 ```
 
-No `setup()` call is needed. Errors show up as you type, and you can jump
-between them with `]d` / `[d`.
+No `setup()` call is needed. Errors and warnings show up as you type, and you
+can jump between them with `]d` / `[d`. Many come with a fix: press `gra` (code
+action) to apply it, like removing a `match` arm that can never run. Code that
+can never run is also shown faded.
