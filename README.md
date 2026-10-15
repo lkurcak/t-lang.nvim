@@ -30,7 +30,39 @@ action) to apply it, like removing a `match` arm that can never run. Code that
 can never run is also shown faded.
 
 `K` shows the type of what's under the cursor, and `<C-]>` jumps to where it's
-defined.
+defined. With Neovim's default keys:
+
+- `grr` lists every use of it,
+- `grn` renames it everywhere, unless the new name would change what some
+  name refers to, in which case it says which,
+- `grt` (Neovim 0.12+) jumps to the struct or enum of its type,
+- `gO` shows an outline of the file.
+
+To turn a warning off, put `#[allow(..)]` with its lint's name before the
+`fn`, `struct`, `enum`, field or variant it's in. Each warning's lint is
+shown as its code.
+
+The language server can also highlight the other uses of what's under the
+cursor. Neovim leaves that to you; this does it when the cursor rests:
+
+```lua
+vim.api.nvim_create_autocmd("LspAttach", {
+  callback = function(ev)
+    local client = vim.lsp.get_client_by_id(ev.data.client_id)
+    if not client or not client:supports_method("textDocument/documentHighlight") then
+      return
+    end
+    vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+      buffer = ev.buf,
+      callback = vim.lsp.buf.document_highlight,
+    })
+    vim.api.nvim_create_autocmd("CursorMoved", {
+      buffer = ev.buf,
+      callback = vim.lsp.buf.clear_references,
+    })
+  end,
+})
+```
 
 The language server can also show the types it inferred, and the type
 arguments of generic functions, as inlay hints. Neovim leaves those off
@@ -42,7 +74,8 @@ vim.lsp.inlay_hint.enable()
 
 ## Syntax highlighting
 
-Run `:TInstallParser` once, and again whenever T's grammar changes. It
+Run `:TInstallParser` once, and again whenever T's grammar changes, as it
+did in t-lang 0.4.4 for `#[allow(..)]`. It
 fetches the grammar from GitHub, builds it with your C compiler (`$CC`, or
 `cc`), and installs it with its highlight queries into Neovim's `site`
 directory. To build it from a t-lang checkout instead, pass its path:
