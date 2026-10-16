@@ -24,7 +24,9 @@ or with lazy.nvim:
 { "lkurcak/t-lang.nvim" }
 ```
 
-No `setup()` call is needed. Errors and warnings show up as you type, and you
+No `setup()` call is needed. Code is indented with four spaces as you type,
+the way `t fmt` lays it out, and pressing Enter in a comment continues it,
+`///` doc comments included. Errors and warnings show up as you type, and you
 can jump between them with `]d` / `[d`. Many come with a fix: press `gra` (code
 action) to apply it, like removing a `match` arm that can never run. Code that
 can never run is also shown faded.
@@ -74,9 +76,10 @@ vim.lsp.inlay_hint.enable()
 
 ## Syntax highlighting
 
-Run `:TInstallParser` once, and again whenever T's grammar changes, as it
-did in t-lang 0.4.4 for `#[allow(..)]`. It
-fetches the grammar from GitHub, builds it with your C compiler (`$CC`, or
+Run `:TInstallParser` once, and again whenever you upgrade `t` and T's
+grammar has changed, as it did in t-lang 0.5.0 for references and lifetimes.
+It fetches the grammar of the `t` you have from GitHub (or the newest, if
+that version isn't tagged), builds it with your C compiler (`$CC`, or
 `cc`), and installs it with its highlight queries into Neovim's `site`
 directory. To build it from a t-lang checkout instead, pass its path:
 `:TInstallParser ~/src/t-lang`.

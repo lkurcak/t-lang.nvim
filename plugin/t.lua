@@ -7,8 +7,9 @@ vim.lsp.enable("t")
 
 -- `:TInstallParser [path]` builds T's tree-sitter parser and installs it, with
 -- its highlight queries, where Neovim looks for them. It takes the grammar
--- from GitHub, or from a t-lang checkout at `path`. Needs a C compiler ($CC,
--- or `cc`), and git unless given a path.
+-- from GitHub, that of the release of the `t` on $PATH if it can, so that
+-- what's highlighted matches what `t` accepts, or from a t-lang checkout at
+-- `path`. Needs a C compiler ($CC, or `cc`), and git unless given a path.
 vim.api.nvim_create_user_command("TInstallParser", function(opts)
   local function fail(msg)
     vim.notify("TInstallParser: " .. msg, vim.log.levels.ERROR)
@@ -26,9 +27,25 @@ vim.api.nvim_create_user_command("TInstallParser", function(opts)
   local tmp
   if not repo then
     tmp = vim.fn.tempname()
-    vim.notify("TInstallParser: fetching the grammar from GitHub...")
-    if not run({ "git", "clone", "--depth", "1", "https://github.com/lkurcak/t-lang", tmp }) then
-      return
+    local url = "https://github.com/lkurcak/t-lang"
+    local ok, version = pcall(function()
+      local r = vim.system({ "t", "--version" }, { text = true }):wait()
+      return r.code == 0 and r.stdout:match("^t (%S+)") or nil
+    end)
+    local tag = ok and version and ("v" .. version) or nil
+    local cloned = false
+    if tag then
+      vim.notify("TInstallParser: fetching the grammar of t " .. version .. " from GitHub...")
+      local r = vim.system({ "git", "clone", "--depth", "1", "--branch", tag, url, tmp }):wait()
+      cloned = r.code == 0
+    end
+    if not cloned then
+      local why = tag and ("no tag " .. tag .. ", so ") or ""
+      vim.notify("TInstallParser: " .. why .. "fetching the newest grammar from GitHub...")
+      vim.fn.delete(tmp, "rf")
+      if not run({ "git", "clone", "--depth", "1", url, tmp }) then
+        return
+      end
     end
     repo = tmp
   end
