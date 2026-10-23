@@ -76,10 +76,13 @@ vim.lsp.inlay_hint.enable()
 
 ## Syntax highlighting
 
-Run `:TInstallParser` once, and again whenever you upgrade `t` and T's
-grammar has changed, as it did in t-lang 0.5.0 for references and lifetimes.
-It fetches the grammar of the `t` you have from GitHub (or the newest, if
-that version isn't tagged), builds it with your C compiler (`$CC`, or
-`cc`), and installs it with its highlight queries into Neovim's `site`
-directory. To build it from a t-lang checkout instead, pass its path:
-`:TInstallParser ~/src/t-lang`.
+The first time you open a T file, the plugin installs T's tree-sitter parser
+and highlight queries into Neovim's `site` directory, and installs them again
+after you upgrade `t`, so what's highlighted always matches what your `t`
+accepts. `t` carries them itself (`t tree-sitter`), so this needs no network
+or C compiler. A `t` older than that has the grammar of its version fetched
+from GitHub and built with your C compiler (`$CC`, or `cc`) instead.
+
+To turn that off, set `vim.g.t_lang_auto_install = false` before opening a
+T file. `:TInstallParser` installs them by hand. To build them from a t-lang
+checkout instead, pass its path: `:TInstallParser ~/src/t-lang`.
