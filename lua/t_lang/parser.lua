@@ -1,12 +1,15 @@
 -- T's tree-sitter parser and highlight queries, installed into Neovim's
 -- `site` directory: by `t tree-sitter`, which carries those of its own
--- version, or, for a `t` older than that, built from the grammar on GitHub
--- or in a t-lang checkout. `parser-info/t.version` records the `t` they
--- were installed for, so they're installed again after upgrading it.
+-- build and leaves them alone if they're already there, so it runs on the
+-- first T file of every session; or, for a `t` older than that, built from
+-- the grammar on GitHub or in a t-lang checkout. Then `parser-info/t.version`
+-- records the `t` they were built for, so they're built again after
+-- upgrading it.
 
 local M = {}
 
 local site = vim.fn.stdpath("data") .. "/site"
+local so = site .. "/parser/t.so"
 local stamp = site .. "/parser-info/t.version"
 
 local function notify(msg, level)
@@ -52,7 +55,6 @@ local function build(repo)
   vim.fn.mkdir(site .. "/queries/t", "p")
   -- Build beside the parser and rename it over, rather than overwrite it:
   -- changing a parser this Neovim has loaded under it can crash it.
-  local so = site .. "/parser/t.so"
   local cmd = {
     vim.env.CC or "cc", "-shared", "-fPIC", "-O2",
     "-I", grammar .. "/src", grammar .. "/src/parser.c",
@@ -93,18 +95,27 @@ end
 
 local installing = false
 
--- Highlights the T buffers already open with the parser just installed,
--- unless this Neovim had already loaded an older one: a loaded parser can't
--- be swapped for another, so that takes a restart.
-local function start(was_loaded)
-  -- Neovim caches what's on 'runtimepath', and leaves out `site` if it
-  -- didn't exist at startup: setting the option again refreshes both, so
-  -- the new queries are found.
+-- Whether this Neovim has loaded a parser for T.
+local function loaded()
+  return vim._ts_has_language ~= nil and vim._ts_has_language("t")
+end
+
+-- Neovim caches what's on 'runtimepath', and leaves out `site` if it didn't
+-- exist at startup: setting the option again refreshes both, so newly
+-- installed queries are found.
+local function refresh_runtimepath()
   if not vim.tbl_contains(vim.opt.runtimepath:get(), site) then
     vim.opt.runtimepath:append(site)
   else
     vim.o.runtimepath = vim.o.runtimepath
   end
+end
+
+-- Highlights the T buffers already open with the parser just installed,
+-- unless this Neovim had already loaded an older one: a loaded parser can't
+-- be swapped for another, so that takes a restart.
+local function start(was_loaded)
+  refresh_runtimepath()
   if was_loaded then
     return
   end
@@ -126,7 +137,7 @@ function M.install(repo, quiet)
     return
   end
   installing = true
-  local was_loaded = vim._ts_has_language ~= nil and vim._ts_has_language("t")
+  local was_loaded = loaded()
   coroutine.wrap(function()
     local version = t_version()
     local ok, err = pcall(function()
@@ -148,7 +159,7 @@ function M.install(repo, quiet)
     if not ok then
       notify("installing the tree-sitter parser failed: " .. err, vim.log.levels.ERROR)
       -- Highlight with the one installed before, if there is one.
-      if vim.fn.filereadable(site .. "/parser/t.so") == 1 then
+      if vim.fn.filereadable(so) == 1 then
         start(was_loaded)
       end
       return
@@ -168,18 +179,45 @@ end
 
 local checked = false
 
---- Whether the parser is ready to start. The first time, installs it if it's
---- missing, or was installed for another version of `t`, unless
---- `vim.g.t_lang_auto_install` is false; then it's not, until that's done.
+--- Whether the parser is ready to start. The first time, installs it, unless
+--- `vim.g.t_lang_auto_install` is false: with `t tree-sitter`, right away,
+--- as that only writes what's changed; with a `t` older than that, in the
+--- background if it's missing or was built for another version of `t`, and
+--- then it's not ready until that's done.
 ---@return boolean
 function M.ensure()
-  if not checked then
-    checked = true
-    local version = vim.g.t_lang_auto_install ~= false and t_version()
-    local installed = vim.fn.filereadable(stamp) == 1 and vim.fn.readfile(stamp)[1]
-    if version and installed ~= version then
-      M.install(nil, installed ~= false)
+  if checked then
+    return not installing
+  end
+  checked = true
+  if vim.g.t_lang_auto_install == false or vim.fn.executable("t") == 0 then
+    return true
+  end
+  local before = vim.uv.fs_stat(so)
+  local ok, r = pcall(function()
+    return vim.system({ "t", "tree-sitter", site }, { text = true }):wait()
+  end)
+  if ok and r.code == 0 then
+    -- It renames a new parser over the old one, so a new inode means it
+    -- changed.
+    local after = vim.uv.fs_stat(so)
+    if not before or not after or before.ino ~= after.ino then
+      refresh_runtimepath()
+      if before and loaded() then
+        notify("installed a new tree-sitter parser; restart Neovim to use it")
+      end
     end
+    return true
+  elseif not ok or r.code ~= 2 then
+    -- A `t` older than `t tree-sitter` prints its usage and exits 2;
+    -- anything else is a real failure.
+    notify("installing the tree-sitter parser failed: " .. (ok and r.stderr or r), vim.log.levels.ERROR)
+    return true
+  end
+  local version = t_version()
+  local installed = vim.fn.filereadable(stamp) == 1 and vim.fn.readfile(stamp)[1]
+  if version and installed ~= version then
+    M.install(nil, installed ~= false)
   end
   return not installing
 end

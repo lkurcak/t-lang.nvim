@@ -76,12 +76,13 @@ vim.lsp.inlay_hint.enable()
 
 ## Syntax highlighting
 
-The first time you open a T file, the plugin installs T's tree-sitter parser
-and highlight queries into Neovim's `site` directory, and installs them again
-after you upgrade `t`, so what's highlighted always matches what your `t`
-accepts. `t` carries them itself (`t tree-sitter`), so this needs no network
-or C compiler. A `t` older than that has the grammar of its version fetched
-from GitHub and built with your C compiler (`$CC`, or `cc`) instead.
+When you open a T file, the plugin has `t` install its tree-sitter parser and
+highlight queries into Neovim's `site` directory (`t tree-sitter`), so what's
+highlighted always matches what your `t` accepts. `t` carries them itself, so
+this needs no network or C compiler, and it leaves them alone when they're
+already up to date, so it's done once per session. A `t` older than 0.24.0
+has the grammar of its version fetched from GitHub and built with your C
+compiler (`$CC`, or `cc`) instead, the first time and after you upgrade it.
 
 To turn that off, set `vim.g.t_lang_auto_install = false` before opening a
 T file. `:TInstallParser` installs them by hand. To build them from a t-lang
