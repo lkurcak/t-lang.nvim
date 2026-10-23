@@ -10,5 +10,9 @@ vim.bo.softtabstop = 4
 vim.bo.comments = ":///,://"
 vim.opt_local.formatoptions:append("croqj")
 
--- Syntax highlighting, once the parser is installed (`:TInstallParser`).
-pcall(vim.treesitter.start)
+-- Syntax highlighting. The first T file installs the parser, if it's missing
+-- or was installed for another version of `t`, and highlights the T files
+-- open once that's done.
+if require("t_lang.parser").ensure() then
+  pcall(vim.treesitter.start)
+end
