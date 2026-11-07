@@ -1,0 +1,11 @@
+name: PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  pr-title:
+    uses: lkurcak/forge/.github/workflows/pr-title.yml@v1
