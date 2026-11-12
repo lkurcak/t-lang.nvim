@@ -3,11 +3,33 @@
 -- closes one. Set as 'indentexpr' by indent/t.lua.
 local M = {}
 
--- Line `lnum` with any comment cut off and trailing space trimmed. T has no
--- strings, so a `//` always starts a comment.
+-- Line `lnum` with any comment cut off and trailing space trimmed. A `//`
+-- in a string, `"http://x"`, isn't a comment, nor is a `"` in a character,
+-- `'"'`, a string's start.
 local function code(lnum)
   local line = vim.fn.getline(lnum)
-  return (line:gsub("//.*$", ""):gsub("%s+$", ""))
+  local i, in_string = 1, false
+  while i <= #line do
+    local c = line:sub(i, i)
+    if in_string then
+      if c == "\\" then
+        i = i + 1
+      elseif c == '"' then
+        in_string = false
+      end
+    elseif c == '"' then
+      in_string = true
+    elseif line:find("^'\\.'", i) then
+      i = i + 3
+    elseif line:find("^'.'", i) then
+      i = i + 2
+    elseif line:sub(i, i + 1) == "//" then
+      line = line:sub(1, i - 1)
+      break
+    end
+    i = i + 1
+  end
+  return (line:gsub("%s+$", ""))
 end
 
 local function opens(line)
